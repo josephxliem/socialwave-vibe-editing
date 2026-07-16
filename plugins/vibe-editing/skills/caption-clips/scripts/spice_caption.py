@@ -111,8 +111,11 @@ def do_gen(inp, gendir, env, args):
         _sh.copyfile(args.words, word)
         print(f"spice_caption: pinned transcript {args.words} — transcription skipped", flush=True)
     else:
-        run(["python3", str(SC / "transcribe_lv3.py"), str(inp), "--out", str(word),
-             "--start", "0", "--end", f"{dur:.3f}"], "transcribe (Groq)", env)
+        # transcribe_auto: Groq primary (unchanged when the key works), auto-falls back to
+        # offline Parakeet MLX / AssemblyAI if Groq is missing or expired. Force with
+        # VIBE_STT_BACKEND=groq|parakeet|assemblyai.
+        run(["python3", str(SC / "transcribe_auto.py"), str(inp), "--out", str(word),
+             "--start", "0", "--end", f"{dur:.3f}"], "transcribe (auto: groq→parakeet→assemblyai)", env)
     if args.corrections and args.corrections.exists():
         import json as _json, re as _re
         cmap = {k.lower(): v for k, v in _json.loads(args.corrections.read_text()).items()}
