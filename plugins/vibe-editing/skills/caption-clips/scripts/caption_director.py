@@ -127,6 +127,10 @@ MEASURED REFINEMENTS (40 Q&A clips, 2026-06-14 — the reference editor corpus, 
 - ACTIVE-WORD emphasis: keep the SIZE bump on the load-bearing word so the word that's being spoken is the one that pops.
 - ONE clip may have a single PEAK word (the biggest hook/payoff word) at "s":"peak" — use peak at most once per clip; reserve it for the single most important word/line.
 - Numbers/money: bump size + they inherit the speaker's color (guest=yellow), never colored white-on-Speaker.
+- SOCIAL WAVE HERO-NOUN RULE: on the HOOK line and on each key sentence, put the SIZE bump ("s") on the
+  single TOPIC word the line is ABOUT — the subject noun / the thing being claimed (e.g. "ALGORITHM",
+  "CONTENT", "COMPOUNDING", a name) — not on a weak verb/adverb next to it. That size-bumped word is what
+  gets the brand accent color downstream, so it must be the word a viewer should remember from the line.
 
 OUTPUT: ONLY valid JSON, no prose, no markdown fences. Schema:
 {"words": {"<index>": {"w":"strong","s":"peak","i":true}, ...}, "voice_spans": [[first_idx, last_idx], ...]}
@@ -440,6 +444,81 @@ def main():
                           f"gap={_gap_words}, auto-marking [{_cont_start}-{_cont_end}] as guest")
                     for _idx in range(_cont_start, _cont_end + 1):
                         sw.setdefault(str(_idx), {})["c"] = "guest"
+
+    # --- SOCIAL WAVE brand accent pass (2026-07-14) ---
+    # Paint the standout PUNCH words (the size-bumped ones) in the brand accents, ALTERNATING
+    # blue<->coral, so captions read as Social Wave's look (white base + one colored punch word).
+    # Safe kit-wide: the color keys "brand_blue"/"brand_coral" only resolve on a preset that
+    # defines them (spice_socialwave); on any other preset generate_spice falls back to white.
+    # Never recolors a genuine guest-voice word (those keep yellow). Disable with VIBE_BRAND_ACCENTS=0.
+    if os.environ.get("VIBE_BRAND_ACCENTS", "1") not in ("0", "false", "no"):
+        _accents = ["brand_blue", "brand_coral"]
+        def _b2(w):   # bare lowercase alnum
+            return "".join(c for c in str(w).lower() if c.isalnum())
+        # Sentence ends + original casing: `ws` here is spice_norm (punctuation STRIPPED and
+        # lowercased), so read them from the PUNCTUATED sibling transcript.json, matched by time.
+        _sent_t = {}; _case_by_t = {}
+        try:
+            _sib = Path(a.transcript).parent / "transcript.json"
+            if _sib.exists():
+                for _w in json.loads(_sib.read_text()).get("words", []):
+                    if str(_w.get("word", "")).rstrip().endswith((".", "!", "?")):
+                        _sent_t[round(float(_w["end"]), 2)] = True
+                    _case_by_t[round(float(_w["start"]), 2)] = _w["word"]
+        except Exception:
+            pass
+        _ends = [i for i, w in enumerate(ws) if round(float(w["end"]), 2) in _sent_t]
+        if not _ends:   # fallback: whole clip is one sentence
+            _ends = [len(ws) - 1]
+        _sentences, _start = [], 0
+        for _e in _ends:
+            _sentences.append((_start, _e)); _start = _e + 1
+        if _start < len(ws):
+            _sentences.append((_start, len(ws) - 1))
+        # Proper nouns / names (Derral, Eves, YouTube, "The" in a title): capitalized in the
+        # transcript AND not the first word of a sentence. Never make a NAME a colored hero — it
+        # splits "Derral Eves" and reads oddly. (generate_spice also keeps name runs in one cue.)
+        _sent_start = set([0] + [e + 1 for e in _ends])
+        def _is_proper(i):
+            o = _case_by_t.get(round(float(ws[i]["start"]), 2), "")
+            return bool(o[:1].isupper()) and (i not in _sent_start)
+        # DETERMINISTIC hero selection — DO NOT rely on the LLM's size bumps (they vary run-to-run,
+        # giving sometimes 30 heroes, sometimes 2). Per SENTENCE, pick the 1 (or 2 for long sentences)
+        # strongest CONTENT words BY LENGTH (the key nouns: ALGORITHM, MERITOCRATIC, CONTENT, VIDEOS…),
+        # color them alternating blue/coral and size them up as the isolated hero. Then DEMOTE every
+        # other size bump so nothing else isolates (fixes word-by-word). Stable frequency every render.
+        _k = _heroes = 0
+        _picked = set()
+        for (_a, _b) in _sentences:
+            _cands = [i for i in range(_a, _b + 1)
+                      if len(_b2(ws[i]["word"])) >= 5
+                      and _b2(ws[i]["word"]) not in _STOP
+                      and not _is_proper(i)                      # names aren't heroes
+                      and sw.get(str(i), {}).get("c") != "guest"]
+            if not _cands:
+                continue
+            _nmax = 2 if (_b - _a + 1) >= 8 else 1
+            _wt = {"payoff": 2, "strong": 1}
+            # Prefer the word the LLM director judged most important (payoff > strong), tiebreak by
+            # length so it lands on the key noun; then avoid picking two ADJACENT words as heroes.
+            _cands.sort(key=lambda i: (_wt.get(sw.get(str(i), {}).get("w"), 0), len(_b2(ws[i]["word"]))), reverse=True)
+            _chosen = []
+            for i in _cands:
+                if len(_chosen) >= _nmax:
+                    break
+                if any(abs(i - j) <= 1 for j in _chosen):   # not adjacent to an already-chosen hero
+                    continue
+                _chosen.append(i)
+            for i in sorted(_chosen):
+                _d = sw.setdefault(str(i), {})
+                _d["c"] = _accents[_k % 2]; _d["s"] = "strong"
+                _picked.add(i); _k += 1; _heroes += 1
+        # demote any OTHER size bump (LLM's) so only the chosen heroes isolate
+        for _key, _d in sw.items():
+            if _d.get("s") and int(_key) not in _picked:
+                _d.pop("s", None)
+        if _heroes:
+            print(f"  🌊 brand accents: {_heroes} hero words (deterministic, ~1-2 per sentence)")
 
     json.dump(stream, open(a.out, "w"), indent=1)
     sw = stream["words"]

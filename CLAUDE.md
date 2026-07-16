@@ -43,6 +43,27 @@ on a question"), update the right config and re-run:
 - what makes a clip worth cutting → `plugins/vibe-editing/skills/edit/prompts/clip_select.md`
 - music → `brand/music/`
 
+## 🌊 SOCIAL WAVE — BRAND DEFAULTS (apply to every clip unless the user says otherwise)
+The brand is **Social Wave**. Full details + rationale live in `brand/brand-profile.md` (source of
+truth — read it when editing brand config). Defaults, encoded across the pipeline:
+
+- **Captions:** preset **`spice_socialwave`** (`skills/caption-clips/presets/spice_socialwave.json`).
+  White base; the biggest PAYOFF word per line is ALL-CAPS + size-bumped + a **brand accent color,
+  ALTERNATING blue↔coral** (blue `#1CB5E5`, coral `#F58A7D`). Director brand note:
+  `skills/caption-clips/references/socialwave_caption_note.md`. **Captions always ON. NO emojis.**
+- **Clip length:** **30–75s, HARD FLOOR 30s** (never ship under 30s). Overrides the generic 20–45s.
+- **Selection / hook:** MINDSET/principle moments over tactics; agency-owner POV. Clip must be
+  **self-contained** for a cold viewer; if context is needed, add it as **on-screen TITLE TEXT**, not
+  by extending the cut. **Hook = bold claim, always punchy.** End clean / on the punchline.
+  (Encoded in `skills/edit/prompts/clip_select.md` → "SOCIAL WAVE — BRAND OVERRIDES".)
+- **Pacing:** dynamic — relaxed during a story/point, **punchy on hard statements, hook always tight.**
+- **Face-tracking:** required on every clip (already the house default — keep it).
+- **Music:** **OFF by default** (captions + clean speech only). To enable later: add tracks to
+  `brand/music/` (rights-cleared only) and turn the mix stage's music on.
+- **Logo:** current logo = blue "SOCIAL" + coral brush "WAVE"; used on end-cards / as a small
+  watermark. **File still PENDING** in `brand/logos/` — stamp it once the user supplies the file.
+- **Don't cut mid-sentence** (already a hard gate — keep enforcing `ending_check.py`).
+
 ## Rules
 - Only use this kit — don't pull tools or keys from anywhere else on the machine.
 - Never delete the user's source footage. Re-renders overwrite the delivered clip in place.

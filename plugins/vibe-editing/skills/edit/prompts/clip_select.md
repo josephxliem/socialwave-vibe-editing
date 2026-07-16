@@ -80,3 +80,26 @@ abstract "why"/justification · weak second example · CTA/outro · empty name-d
 Return up to the requested number of candidates, best first. Honesty over optimism: if a moment
 can only honestly open on a question or only end before an explanation, tag it truthfully — the
 scorer will rank it down, which is correct.
+
+---
+
+## 🌊 SOCIAL WAVE — BRAND OVERRIDES (layer on top of the data-backed rules above)
+These reflect the brand owner's stated preferences. They RESTRICT/steer selection; the lift rules
+above still decide ranking among candidates that qualify.
+
+- **Content focus:** favor **MINDSET / principle** moments (the reframe, the belief, the "why it
+  matters") over tactical how-to. Current brand voice = YouTube + business strategy from an
+  **agency-owner** POV (e.g. editing for Kan's personal brand). A great mindset reframe beats a
+  step-by-step tactic.
+- **Self-contained is MANDATORY (not just preferred):** the clip must land for a COLD viewer with
+  zero prior context. Within the first beat the viewer must know *what* this is and *why it's worth
+  watching*. If a moment needs a little context to make sense, DON'T extend the cut to add it —
+  instead set `title_idea` to the on-screen **TITLE TEXT** that supplies that context up top.
+- **Hook = BOLD CLAIM, always punchy.** Open on the bold claim the moment implies (never a literal
+  question). The hook is the one place pacing is ALWAYS tight — no runway, no throat-clear.
+- **End clean / on the punchline** by default (editor's judgment allows an occasional imperative or
+  soft CTA, but the standard landing is the payoff, then hard-end — no trailing chatter).
+- **Duration: 30–75 seconds. HARD FLOOR: never propose a clip under 30s.** A sub-30s one-liner is
+  too thin for this brand — extend the in-point to include the setup that makes the payoff land, or
+  drop the candidate. Target the 30–75s band; do not exceed 75s.
+- **No emojis** anywhere in title text or captions.

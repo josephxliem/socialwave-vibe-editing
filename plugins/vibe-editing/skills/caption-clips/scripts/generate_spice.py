@@ -31,6 +31,7 @@ Style-stream JSON (all keys optional):
 """
 # ── vibe-editing portable path bootstrap (auto-inserted) ──
 import os as _os, sys as _sys
+import pathlib as _pl
 def _acq_root():
     r = _os.environ.get("VIBE_PIPELINE_ROOT") or _os.environ.get("CLAUDE_PLUGIN_ROOT")
     if r and _os.path.isdir(_os.path.join(r, ".claude-plugin")):
@@ -154,6 +155,16 @@ def main() -> int:
     ap.add_argument("--min-cue-dur", type=float, default=None,
                     help="Override min on-screen seconds per caption. Lower (~0.25) for fast talkers "
                          "whose captions otherwise lag behind the audio.")
+    ap.add_argument("--alpha", action="store_true", default=False,
+                    help="Render captions on a TRANSPARENT base (ProRes 4444, yuva) — captions+shadow "
+                         "only, no source pixels — as an overlay clip for an editor (Premiere V2). "
+                         "Uses --burn only for output dimensions/duration, not its pixels.")
+    ap.add_argument("--cues", type=Path, default=None,
+                    help="JSON list-of-lists of word indices, one inner list per caption cue. When set, "
+                         "the SOP auto-chunker + orphan-merge are BYPASSED and these exact cue groupings "
+                         "are used verbatim (Premiere round-trip: honor the editor's cue boundaries). "
+                         "Styling/timing/render are otherwise unchanged. Pair with --no-onset-correct "
+                         "to keep the editor's cue starts exact.")
     a = ap.parse_args()
 
     P = json.loads(a.preset.read_text())
@@ -161,6 +172,38 @@ def main() -> int:
     N = len(words)
     if not N:
         print("No words in transcript."); return 1
+
+    # --- SENTENCE-END times (2026-07-14) ---
+    # spice_format STRIPS sentence punctuation, so the chunker's ".?!," break never fires and a
+    # caption cue can straddle a sentence boundary (end of one sentence + start of the next). Recover
+    # true sentence ends from the PUNCTUATED sibling transcript.json (same timestamps) and force a
+    # cue break after each, so every caption stays within ONE sentence.
+    # Break at SENTENCE ends (. ! ?) AND CLAUSE ends (, ; :) so cues group by natural phrase
+    # ("don't blame YouTube," / "blame your content.") instead of chopping mid-phrase on the
+    # word/char cap. Recovered from the punctuated sibling transcript (same timestamps).
+    # Load the PUNCTUATED sibling transcript. spice_norm (our `words`) is 1:1 aligned with it (same
+    # count/order), so map BY INDEX — NOT by timestamp. (Two words can share a start time when ASR
+    # timestamps overlap; a time-keyed lookup then collides and returns the wrong word, which showed
+    # up as "it's all about" rendering "about all about".)
+    _sib_words = []
+    try:
+        _sib = a.transcript.parent / "transcript.json"
+        if _sib.exists() and _sib != a.transcript:
+            _sib_words = json.loads(_sib.read_text()).get("words", [])
+    except Exception:
+        pass
+    _use_idx = len(_sib_words) == N
+    SENT_END_T = set(round(float(_w["end"]), 2) for _w in _sib_words
+                     if str(_w.get("word", "")).rstrip().endswith((".", "!", "?", ",", ";", ":")))
+    def _is_sentence_end(i):
+        if _use_idx:
+            return str(_sib_words[i].get("word", "")).rstrip().endswith((".", "!", "?", ",", ";", ":"))
+        return round(float(words[i]["end"]), 2) in SENT_END_T
+    def _orig_case(i):
+        # Original sentence-case / proper-noun casing from the transcript (spice_norm is lowercased).
+        if _use_idx:
+            return _sib_words[i].get("word", words[i]["word"])
+        return words[i]["word"]
 
     # --- style stream ---
     style = json.loads(a.style.read_text()) if (a.style and a.style.exists()) else {}
@@ -194,6 +237,15 @@ def main() -> int:
                 return span[2]
         return default_voice
 
+    def voice_group(i):
+        # Line-break GROUP (distinct from per-word COLOR). Social Wave uses color as an EMPHASIS
+        # axis, so white + brand accents (brand_blue/brand_coral) must share ONE caption line.
+        # Only a genuinely different voice (e.g. a Q&A "guest") forces a line break.
+        v = voice_of(i)
+        if v == "speaker" or v == default_voice or str(v).startswith("brand_"):
+            return "main"
+        return v
+
     def weight_of(i):
         s = spec(i)
         if "w" in s:
@@ -209,6 +261,23 @@ def main() -> int:
         if number_color and is_number(words[i]["word"]):
             return number_color
         return colors.get(voice_of(i), colors.get("speaker", "FFFFFF"))
+
+    import re as _re_dw
+    def disp_w(i):
+        # Displayed text for word i. Base words use the transcript's ORIGINAL casing (sentence-case +
+        # proper nouns like YouTube/Derral). Social Wave brand-accent PUNCH words render ALL-CAPS.
+        # PRESERVE the token's EXACT trailing punctuation (. , : ; ! ?) so captions match the
+        # user-supplied grammar; disp() strips '.'/',' so we re-append the real punctuation cluster.
+        raw = str(_orig_case(i)).strip()
+        t = disp(raw)
+        if str(voice_of(i)).startswith("brand_"):
+            t = t.upper()
+        _m = _re_dw.search(r'[.,:;!?]+$', raw)
+        if _m:
+            _p = _m.group(0)
+            if not t.endswith(_p):
+                t = t.rstrip('.,:;!?') + _p
+        return t
 
     def size_of(i):
         # \fscx/\fscy percent. Style stream 's' = a tier name ("emph"/"strong"/"peak") or a raw
@@ -238,20 +307,49 @@ def main() -> int:
     # spice_format strips periods, the .?! break below rarely fires on a normal statement, so this
     # timing-based split is the reliable guard. Threshold is in seconds of inter-word gap.
     PAUSE_SPLIT = float(P.get("timing", {}).get("pause_split_s", 0.35))
-    chunks, cur = [], []
-    for i, wd in enumerate(words):
+    # SOCIAL WAVE: a HERO word (size-bumped by the director = the colored punch word) gets its OWN
+    # cue so it renders BIG and alone, like the brand reference captions. (Also satisfies the
+    # single-word gate that lets the size bump actually apply.)
+    def is_hero(i):
+        return bool(spec(i).get("s"))
+
+    # PREMIERE ROUND-TRIP OVERRIDE: honor externally-supplied cue groupings verbatim
+    # (the editor set them in Premiere), skipping the SOP auto-chunker + orphan-merge.
+    _cues_override = None
+    if a.cues:
+        _cues_override = json.loads(a.cues.read_text())
+        # validate: every index in range, monotonic, full coverage
+        _flat = [i for c in _cues_override for i in c]
+        if _flat != list(range(N)):
+            print(f"--cues: WARNING indices {_flat[:5]}… don't tile 0..{N-1} exactly "
+                  f"({len(_flat)} idx vs {N} words); using them as given.")
+        chunks = _cues_override
+
+    chunks, cur = ([] if _cues_override is None else chunks), []
+    for i, wd in enumerate(words if _cues_override is None else []):
+        if is_hero(i):                       # isolate the hero word on its own line
+            if cur: chunks.append(cur); cur = []
+            chunks.append([i])
+            continue
         # HARD BREAK at a SPEAKER CHANGE (2026-06-10, Operator): the reference editor NEVER shows Speaker (white)
         # and the guest (yellow) in the same cue. A caption cue holds exactly ONE voice — when
         # Speaker asks and the guest answers (or vice-versa), the question ends on its own line and
         # the answer starts fresh. Without this, the char/word packer would merge the tail of one
         # speaker with the head of the next into a mixed white+yellow line.
-        speaker_change = bool(cur) and voice_of(i) != voice_of(cur[-1])
+        speaker_change = bool(cur) and voice_group(i) != voice_group(cur[-1])
         pause_break = bool(cur) and (float(wd["start"]) - float(words[cur[-1]]["end"]) > PAUSE_SPLIT)
-        if cur and (speaker_change or pause_break or chunk_chars(cur + [i]) > MAXC or len(cur) + 1 > MAXW):
+        cap_break = chunk_chars(cur + [i]) > MAXC or len(cur) + 1 > MAXW
+        # Keep a multi-word PROPER NOUN together (Derral Eves / The YouTube Formula): don't let the
+        # word/char cap split two adjacent capitalized words. (cur is only non-empty mid-sentence,
+        # where a capital = a real proper noun, so sentence-initial caps never trigger this.)
+        def _pn(j):
+            return _orig_case(j)[:1].isupper()
+        keep_name = bool(cur) and _pn(i) and _pn(cur[-1])
+        if cur and (speaker_change or pause_break or (cap_break and not keep_name)):
             chunks.append(cur); cur = [i]
         else:
             cur.append(i)
-        if wd["word"].rstrip().endswith((".", "?", "!", ",")):
+        if wd["word"].rstrip().endswith((".", "?", "!", ",")) or _is_sentence_end(i):
             chunks.append(cur); cur = []
     if cur:
         chunks.append(cur)
@@ -261,14 +359,16 @@ def main() -> int:
     # header) is PHRASE RUNS, not lone floating words; the SF audit also flags these as "floating
     # fragments". Attach the orphan to whichever neighbor keeps the line short (prefer the previous
     # cue), as long as it stays within a small slack over the char limit.
-    if len(chunks) > 1:
+    if _cues_override is None and len(chunks) > 1:
         merged = []
         for ch in chunks:
             # NEVER merge an orphan across a speaker change — that would re-create a mixed
             # white+yellow cue. Only fold into the previous cue when it's the SAME voice.
             # …and NEVER merge across a pause (would undo the pause-split → pre-reveal again).
             if (len(ch) == 1 and merged
-                    and voice_of(ch[0]) == voice_of(merged[-1][-1])
+                    and voice_group(ch[0]) == voice_group(merged[-1][-1])
+                    and not is_hero(ch[0]) and not is_hero(merged[-1][-1])   # keep hero words isolated
+                    and not _is_sentence_end(merged[-1][-1])   # never merge across a sentence end
                     and (float(words[ch[0]]["start"]) - float(words[merged[-1][-1]]["end"]) <= PAUSE_SPLIT)
                     and chunk_chars(merged[-1] + ch) <= MAXC + 7):
                 merged[-1] = merged[-1] + ch
@@ -277,7 +377,9 @@ def main() -> int:
         # a leading orphan can't merge backward above; fold it into the next cue if same voice + fits
         # (and only if no pause separates them).
         if (len(merged) > 1 and len(merged[0]) == 1
-                and voice_of(merged[0][0]) == voice_of(merged[1][0])
+                and voice_group(merged[0][0]) == voice_group(merged[1][0])
+                and not is_hero(merged[0][0]) and not is_hero(merged[1][0])   # keep hero words isolated
+                and not _is_sentence_end(merged[0][0])   # never merge across a sentence end
                 and (float(words[merged[1][0]]["start"]) - float(words[merged[0][0]]["end"]) <= PAUSE_SPLIT)
                 and chunk_chars(merged[0] + merged[1]) <= MAXC + 7):
             merged[1] = merged[0] + merged[1]; merged = merged[1:]
@@ -297,6 +399,17 @@ def main() -> int:
         return s
 
     starts = [eff_onset(ch[0]) for ch in chunks]
+
+    # NO-OVERLAP / MONOTONIC (2026-07-14): ASR word timestamps sometimes OVERLAP (a word's start is
+    # before the previous word's end). With zero-gap timing that made two caption cues display at the
+    # same time (overlapping captions, e.g. at 0:45) and scrambled word order ("it's all about" ->
+    # "about all about"). Force each cue to start no earlier than the previous cue's last spoken word
+    # ends, so cues tile cleanly with neither overlap nor gap.
+    _run = 0.0
+    for _ci, _ch in enumerate(chunks):
+        if starts[_ci] < _run:
+            starts[_ci] = round(_run, 3)
+        _run = max(float(words[_ch[-1]]["end"]), starts[_ci] + 0.04)
 
     # --- render ---
     W = P["video"]["width"]; H = P["video"]["height"]
@@ -476,11 +589,15 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     ev = []
     for ci, ch in enumerate(chunks):
         st = starts[ci]
-        en = starts[ci + 1] if ci + 1 < len(chunks) else float(words[ch[-1]]["end"]) + 0.30
+        last_end = float(words[ch[-1]]["end"])
+        nat_next = starts[ci + 1] if ci + 1 < len(chunks) else last_end + 0.30
+        # TIMING (2026-07-14): word-anchored + ZERO-GAP. Each cue starts at its word's onset and
+        # holds until the NEXT cue is spoken (nat_next) — no blank flickers between captions. We do
+        # NOT push the next cue's start, so there is no cumulative drift (the earlier bug). The only
+        # cap is a sanity guard on the final cue.
+        en = nat_next
         if en <= st:
-            en = st + 0.30
-        if ci + 1 < len(chunks) and en - st < MIN_DUR:  # never flash; hold + delay next (zero-gap kept)
-            starts[ci + 1] = round(st + MIN_DUR, 2); en = starts[ci + 1]
+            en = st + 0.20
 
         toks = []
         # SIZE PER CUE (Operator 2026-06-11 CORRECTION): a size bump may land on a SINGLE-WORD caption
@@ -515,7 +632,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         for idx in ch:
             fam = weights.get(weight_of(idx), base_family)
             f = fax if italic[idx] else 0
-            text = disp(words[idx]["word"])
+            text = disp_w(idx)
             if idx == fq:
                 text = '"' + text
             if idx == lq:
@@ -698,6 +815,12 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             sh_sub  = str(shadow_ass_path).replace(":", r"\:")
             sh2_sub = str(shadow2_ass_path).replace(":", r"\:")
             tx_sub  = str(text_ass_path).replace(":", r"\:")
+            # ALPHA-OVERLAY FIX (2026-07-16): on a transparent base the ass/subtitles filter leaves the
+            # alpha channel UNTOUCHED by default, so crisp text drawn over transparent keeps ~0 alpha and
+            # composites faded/shadow-eaten (letters "cut off"). alpha=1 makes libass write the alpha
+            # channel so text becomes fully opaque — matching the burned MP4 exactly. Burn mode has an
+            # opaque base, so it needs (and gets) no change.
+            tx_alpha = ":alpha=1" if a.alpha else ""
             if pr_sh2_enabled:
                 fc = (
                     f"[0:v]split=5[video][bw][sw][bt][st];"
@@ -715,7 +838,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                     f"[st]drawbox=c=black:t=fill,format=yuva444p[sbk_t];"
                     f"[sbk_t][glow_t]alphamerge[layer_t];"
                     f"[v1][layer_t]overlay=x={pr_sh2_dx}:y={pr_sh2_dy}:format=auto:shortest=1[v2];"
-                    f"[v2]ass='{tx_sub}':fontsdir='{fdir}'[final]"
+                    f"[v2]ass='{tx_sub}':fontsdir='{fdir}'{tx_alpha}[final]"
                 )
             else:
                 fc = (
@@ -726,15 +849,36 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                     f"[forsolid]drawbox=c=black:t=fill,format=yuva444p[solid_black];"
                     f"[solid_black][glow]alphamerge[shadow_layer];"
                     f"[video][shadow_layer]overlay=x={pr_sh_dx}:y={pr_sh_dy}:format=auto:shortest=1[with_shadow];"
-                    f"[with_shadow]ass='{tx_sub}':fontsdir='{fdir}'[final]"
+                    f"[with_shadow]ass='{tx_sub}':fontsdir='{fdir}'{tx_alpha}[final]"
                 )
-            r = subprocess.run([
-                "ffmpeg", "-y", "-hide_banner", "-loglevel", "error",
-                "-i", str(a.burn),
-                "-filter_complex", fc,
-                "-map", "[final]", "-map", "0:a",
-                *venc, "-c:a", "copy", "-movflags", "+faststart", str(out),
-            ])
+            if a.alpha:
+                # Captions-only ALPHA overlay: replace the source video (input 0) with a TRANSPARENT
+                # base of the same WxH/duration, and output ProRes 4444 (yuva). fc is unchanged — the
+                # shadow layers + text ass composite onto transparent -> exact caption look with alpha.
+                try:
+                    _dur = subprocess.run(
+                        ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+                         "-of", "csv=p=0", str(a.burn)], capture_output=True, text=True).stdout.strip()
+                    _dur = float(_dur)
+                except Exception:
+                    _dur = 60.0
+                r = subprocess.run([
+                    "ffmpeg", "-y", "-hide_banner", "-loglevel", "error",
+                    "-f", "lavfi", "-i",
+                    f"color=c=black@0.0:s={W}x{H}:r=25:d={_dur:.3f},format=yuva444p",
+                    "-filter_complex", fc,
+                    "-map", "[final]",
+                    "-c:v", "prores_ks", "-profile:v", "4444", "-pix_fmt", "yuva444p10le",
+                    "-movflags", "+faststart", str(out),
+                ])
+            else:
+                r = subprocess.run([
+                    "ffmpeg", "-y", "-hide_banner", "-loglevel", "error",
+                    "-i", str(a.burn),
+                    "-filter_complex", fc,
+                    "-map", "[final]", "-map", "0:a",
+                    *venc, "-c:a", "copy", "-movflags", "+faststart", str(out),
+                ])
         else:
             # Classic single-pass ASS burn
             sub = str(a.out).replace(":", r"\:")
