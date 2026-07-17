@@ -1,3 +1,5 @@
+> **Team members: follow [ONBOARDING.md](ONBOARDING.md) — the canonical guide.**
+
 # Quickstart — 3 steps
 
 ```

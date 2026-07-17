@@ -11,6 +11,13 @@ llvmlite>=0.44
 numpy<2.3
 pillow
 opencv-contrib-python
+requests
+
+# Optional extras (only needed for specific side-features):
+# librosa        — music tempo / multicam sync (highlight skill)
+# wordfreq       — transcript fragment detection (normalize_transcript)
+# openai         — LLM music picker / llm_edit
+# anthropic      — LLM assembly validator
 
 # Apple Silicon ONLY — offline transcription (skip on Windows/Linux; pip install fails there):
 # parakeet-mlx

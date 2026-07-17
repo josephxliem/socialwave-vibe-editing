@@ -31,7 +31,8 @@ def main() -> int:
 
     model_path = Path(__file__).with_name("blaze_face_short_range.tflite")
     if not model_path.exists():
-        print(f"ERROR: missing model {model_path.name} (download blaze_face_short_range.tflite)",
+        print(f"ERROR: missing model {model_path.name} — download it next to this script:\n"
+              f"  curl -L -o {model_path} https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/latest/blaze_face_short_range.tflite",
               file=sys.stderr); return 1
 
     cap = cv2.VideoCapture(a.source)

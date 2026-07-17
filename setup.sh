@@ -4,6 +4,7 @@ set -e
 DIR="$(cd "$(dirname "$0")" && pwd)"
 PLUG="$DIR/plugins/vibe-editing"
 echo "== Vibe Editing setup =="
+echo "NOTE: team members should follow ONBOARDING.md (uses uv for the venv — python3 -m venv is broken on Homebrew 3.14)."
 if command -v brew >/dev/null 2>&1; then
   echo "Installing system tools via Homebrew (ffmpeg, tesseract, yt-dlp, rclone)..."
   brew install ffmpeg tesseract yt-dlp rclone || true

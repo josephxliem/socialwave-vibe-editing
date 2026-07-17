@@ -1,3 +1,5 @@
+> **Team members: follow [ONBOARDING.md](ONBOARDING.md) instead — it's the canonical setup guide (this file is the upstream kit's original).**
+
 # Install — Vibe Editing
 
 A portable Claude Code plugin. It does **not** need to live in `~/.claude/skills/` — it runs
@@ -35,8 +37,9 @@ it carries its own `.claude-plugin/plugin.json` and self-loads. Run `/reload-plu
 
 ```bash
 cd plugins/vibe-editing
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+# PREFER uv (Homebrew python 3.14 has a broken pyexpat that kills `python3 -m venv`):
+uv venv --python 3.12 .venv
+uv pip install --python .venv/bin/python -r ../../requirements.txt
 ```
 
 Heavy / optional (only if you use these paths):

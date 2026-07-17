@@ -24,7 +24,14 @@ Use it as a context manager around ffmpeg calls:
 
 Inside parallel.run_commands(kind="encode") it's already wired — most skills get it free.
 """
-import fcntl
+try:
+    import fcntl  # POSIX file locking
+except ImportError:  # Windows — no fcntl; fall back to no-op locking (single-encode anyway)
+    class _NoFcntl:
+        LOCK_EX = LOCK_NB = LOCK_UN = 0
+        @staticmethod
+        def flock(*a, **k): pass
+    fcntl = _NoFcntl()
 import os
 import time
 from contextlib import contextmanager

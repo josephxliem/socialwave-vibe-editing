@@ -1,0 +1,22 @@
+{
+  "_readme": "SAMPLE render project. Copy this folder, put/symlink source video in 00_SOURCE/, edit 10_WORK/cuts.json with your segment times, then run: python3 skills/render/engine.py <this folder>  (use the kit venv's python). Output lands in 20_DELIVER/v1/.",
+  "title": "sample",
+  "pipeline": "single",
+  "stages": {
+    "cut": {
+      "source_video": "00_SOURCE/source.mp4",
+      "source_audio": "00_SOURCE/source.mp4",
+      "spec": "10_WORK/cuts.json"
+    },
+    "reframe": { "preset": "talking-head", "zoom": 1.0, "eye_y": 0.3, "res": "4k" },
+    "grade": { "filter": "eq=contrast=1.06:saturation=1.08:gamma=0.98,colorbalance=rm=0.015:gm=-0.022:bm=-0.035" },
+    "captions": {
+      "preset": "skills/caption-clips/presets/spice_socialwave.json",
+      "no_layout": true,
+      "corrections": { "_example_mishear": "Corrected Word" }
+    },
+    "mix": { "music": "", "voice_lufs": -16, "music_lufs": -30, "fade_in": 1.0, "fade_out": 1.5, "limiter": 0.45 },
+    "leadfix": { "head_trim": 0.0 }
+  },
+  "output": { "name": "Client_topic_REEL_V1.mp4", "dir": "20_DELIVER" }
+}

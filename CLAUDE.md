@@ -89,6 +89,12 @@ The division of labour: **the editor owns TIMING + WORDING + CUTS (in Premiere);
    just captions: diff the SRT word-count/duration first; if content changed, the Premiere
    timeline is the source of truth).
 
+### Render project format
+A render project is a folder: `00_SOURCE/` (source video), `10_WORK/cuts.json` (segments),
+`manifest.json` (stage settings), `20_DELIVER/` (output). **Copy `docs/sample_project/` as your
+starting template** — it documents every field. Run with the kit venv's python:
+`python3 skills/render/engine.py <project_dir>`. Stages cache by content hash; reruns are fast.
+
 ### Clip rules (Kan / personal-brand mindset content)
 - 30–75s, no mid-sentence cuts, end on a clean punchline.
 - End the clip ~0.25s after the last spoken word — verify true speech end with Silero VAD
