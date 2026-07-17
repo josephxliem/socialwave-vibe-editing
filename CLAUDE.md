@@ -68,3 +68,50 @@ truth — read it when editing brand config). Defaults, encoded across the pipel
 - Only use this kit — don't pull tools or keys from anywhere else on the machine.
 - Never delete the user's source footage. Re-renders overwrite the delivered clip in place.
 - Be patient and plain-spoken; assume they've never used a terminal.
+
+## 🌊 SOCIAL WAVE — THE PROVEN REEL WORKFLOW (team standard, locked 2026-07-17)
+
+The division of labour: **the editor owns TIMING + WORDING + CUTS (in Premiere); Claude owns the LOOK (captions/render).**
+
+1. Editor gives Claude the long-form video (+ optionally a topic). Claude scans the transcript,
+   pitches 2-3 reel options (hook / arc / length), editor picks.
+2. Claude cuts + renders review MP4s (face-tracked 9:16, brand captions) and QCs them
+   frame-by-frame (claude-video /watch) BEFORE the editor sees them.
+3. Editor watches the MP4s. Approve → done. Tweaks → step 4.
+4. Claude builds Premiere sequences: V1 = assembly cut (trimmable), V2 = exact-look caption
+   overlay (ALPHA .mov, scale 50% in a 1080x1920 seq), + an editable caption track (plain SRT).
+5. Editor edits in Premiere (cuts on V1, caption text/timing on the caption track), then
+   exports the caption sidecar: ⌘M → Captions tab → Create Sidecar File → SubRip (.srt).
+6. Claude runs `skills/caption-clips/scripts/rebuild_captions_from_srt.py` — re-applies the
+   approved per-word styling onto the editor's words/timings verbatim — re-bakes the overlay,
+   and renders the final MP4 FROM THE EDITOR'S TIMELINE geometry (editors may trim cuts, not
+   just captions: diff the SRT word-count/duration first; if content changed, the Premiere
+   timeline is the source of truth).
+
+### Clip rules (Kan / personal-brand mindset content)
+- 30–75s, no mid-sentence cuts, end on a clean punchline.
+- End the clip ~0.25s after the last spoken word — verify true speech end with Silero VAD
+  (`vad_segments.py`); ASR word-ends often include trailing silence.
+- Never clip the video intro / case-study rollup (it serves the video's packaging, not a feed).
+- A hook must connect to the viewer's situation, not just sound bold.
+
+### Folder conventions
+- Mirror the Dropbox convention locally per video: `<NN> - <Video Title>/` with
+  `Footage / Premiere / Exports / Reels Exports / Reels Working / tools`.
+- Reel deliverables: `SW <NN> - <full video title> REEL<NN>_Ready.mp4` (revisions ` V2`).
+  Continue the video's existing REEL numbering from Dropbox.
+- **NEVER write to Dropbox** — the editor drags approved files in themselves.
+- `_runs/` is disposable render cache; anything Premiere references lives in the video folder.
+
+### Gotchas (hard-won — do not re-learn these)
+- Launch `skills/render/engine.py` with the kit venv's bin PREFIXED to PATH
+  (subprocess stages need cv2 etc.).
+- Transcription backend order: Groq → Parakeet MLX (offline, Apple Silicon) → AssemblyAI
+  (`transcribe_auto.py`). No key needed if using Parakeet.
+- The soft two-layer gblur shadow is CORRECT (matches the burned MP4). If overlay captions ever
+  look faded/"cut off", it's the ALPHA path (needs `alpha=1` on the text ass filter — already
+  fixed), NOT the shadow. QC overlays composited over footage with /watch before delivering.
+- Premiere bridge: `export_sequence` can return success with NO file if Media Encoder isn't
+  running — verify the file exists; fallback = reproduce the timeline with ffmpeg from clip
+  geometry. Caption tracks are invisible to scripting (the SRT sidecar export is the only way
+  to read the editor's caption edits).
