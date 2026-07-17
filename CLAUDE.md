@@ -43,7 +43,7 @@ on a question"), update the right config and re-run:
 - what makes a clip worth cutting → `plugins/vibe-editing/skills/edit/prompts/clip_select.md`
 - music → `brand/music/`
 
-## 🌊 SOCIAL WAVE — BRAND DEFAULTS (apply to every clip unless the user says otherwise)
+## 🌊 SOCIAL WAVE / KAN — BRAND DEFAULTS (ONLY for Social Wave's own content, i.e. Kan's brand — for ANY OTHER CLIENT run the brand interview and create brand/brand-profile.md + a spice_<client>.json preset; see docs/brand-profile.example.md)
 The brand is **Social Wave**. Full details + rationale live in `brand/brand-profile.md` (source of
 truth — read it when editing brand config). Defaults, encoded across the pipeline:
 

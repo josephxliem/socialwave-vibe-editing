@@ -13,3 +13,6 @@ __pycache__/
 
 # Never commit API keys
 plugins/vibe-editing/config/keys.env
+
+# Brand profiles are per-client and LOCAL — never commit a client's brand to the shared kit
+brand/
