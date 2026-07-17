@@ -96,7 +96,13 @@ def main() -> int:
                     help='write the JSON inputs + report alignment, skip the render')
     a = ap.parse_args()
 
-    master_tx = json.loads((a.master_dir / 'transcript.json').read_text())['words']
+    # Align in the DIRECTOR'S index space: director_stream keys index spice_norm.json,
+    # which can be SHORTER than transcript.json (numeric merges like "million dollars" ->
+    # "$1M"). Aligning against transcript.json shifted every style after the merge point
+    # by one word. spice_norm carries the same timings, so use it when present.
+    _norm_p = a.master_dir / 'spice_norm.json'
+    _tx_p   = a.master_dir / 'transcript.json'
+    master_tx = json.loads((_norm_p if _norm_p.exists() else _tx_p).read_text())['words']
     director  = json.loads((a.master_dir / 'director_stream.json').read_text())
     d_words   = director.get('words', {})
 

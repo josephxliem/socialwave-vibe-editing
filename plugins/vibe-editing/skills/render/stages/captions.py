@@ -138,7 +138,7 @@ def run(work_dir, config, inputs, inputs_meta, project, manifest, out_path):
         print(f"  ↳ caption-gen HIT ({genkey}) — reusing styled captions (transcribe+director skipped)", flush=True)
     else:
         print(f"  ↳ caption-gen MISS ({genkey}) — generating styled captions from {Path(audio_src).name}", flush=True)
-        gen_cmd = ["python3", str(SPICE_CAPTION), str(audio_src), "--gen-only", "--work", str(gendir)]
+        gen_cmd = [sys.executable, str(SPICE_CAPTION), str(audio_src), "--gen-only", "--work", str(gendir)]
         if ctx: gen_cmd += ["--context", ctx]
         if corr_path: gen_cmd += ["--corrections", str(corr_path)]
         if words_path: gen_cmd += ["--words", str(words_path)]
@@ -193,7 +193,7 @@ def run(work_dir, config, inputs, inputs_meta, project, manifest, out_path):
             no_layout = True
 
     # ── BURN (pixel-dependent): layout on the framed video + generate_spice --burn, reusing gendir. ──
-    burn_cmd = ["python3", str(SPICE_CAPTION), str(prior), str(out_path),
+    burn_cmd = [sys.executable, str(SPICE_CAPTION), str(prior), str(out_path),
                 "--burn-from", str(gendir), "--work", str(cap_work)]
     if preset:
         burn_cmd += ["--preset", str(preset)]

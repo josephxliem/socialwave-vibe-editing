@@ -87,9 +87,15 @@ if crit_ok:
 
 print(f"  {R}NOT READY{X} — install ONLY what's missing:\n")
 if brew_need:
-    if not has("brew"):
-        print("    # Homebrew first: /bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"")
-    print(f"    brew install {' '.join(dict.fromkeys(brew_need))}")
+    import platform as _plat
+    _pkgs = ' '.join(dict.fromkeys(brew_need))
+    if _plat.system() == "Windows":
+        print(f"    winget install {' '.join('Gyan.FFmpeg' if x=='ffmpeg' else x for x in dict.fromkeys(brew_need))}")
+        print("    # (or: choco install " + _pkgs + ")")
+    else:
+        if not has("brew"):
+            print("    # Homebrew first: /bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"")
+        print(f"    brew install {_pkgs}")
 if pip_need:
     print(f"    cd {ROOT} && python3 -m venv .venv && source .venv/bin/activate \\")
     print(f"        && pip install {' '.join(dict.fromkeys(pip_need))}")

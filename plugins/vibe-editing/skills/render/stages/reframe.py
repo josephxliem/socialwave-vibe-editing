@@ -179,7 +179,7 @@ def _assert_frames(p, expected: int, what: str):
 
 def _tile_cmd(chunk, out, side_cfg, res, detw):
     """qa_reframe_v2 invocation for one split tile (ROI-restricted to one subject)."""
-    cmd = ["python3", str(QA_REFRAME), str(chunk), str(out),
+    cmd = [sys.executable, str(QA_REFRAME), str(chunk), str(out),
            "--preset", side_cfg.get("preset", "guest"), "--res", res,
            "--no-scene-split", "--lock-x", "--detw", str(detw)]
     if side_cfg.get("roi"):
@@ -253,7 +253,7 @@ def run(work_dir, config, inputs, inputs_meta, project, manifest, out_path):
                 ff(_tile_cmd(chunk, top, split.get("top") or {}, res, detw))
                 ff(_tile_cmd(chunk, bot, split.get("bottom") or {}, res, detw))
                 seg_clip = work_dir / f"{out_path.stem}_seg{i}_section.mp4"
-                ff(["python3", str(MAKE_SPLIT), "--speaker", str(top), "--guest", str(bot),
+                ff([sys.executable, str(MAKE_SPLIT), "--speaker", str(top), "--guest", str(bot),
                     "--out", str(seg_clip), "--audio", "none", "--width", str(width),
                     "--crop-y", str(crop_y), "--guest-crop-y", str(crop_y),
                     "--shadow-strength", str(shadow)])
@@ -280,7 +280,7 @@ def run(work_dir, config, inputs, inputs_meta, project, manifest, out_path):
                 # override scene_split:false ONLY for a known single-angle chunk with a fixed ROI
                 # (e.g. a wide multi-person shot cropped to one subject) where a continuous crop is wanted.
                 scene = "--no-scene-split" if ov.get("scene_split") is False else "--scene-split"
-                scmd = ["python3", str(QA_REFRAME), str(chunk), str(seg_clip),
+                scmd = [sys.executable, str(QA_REFRAME), str(chunk), str(seg_clip),
                         "--preset", s_preset, "--res", res, scene]
                 if s_zoom is not None: scmd += ["--zoom", str(s_zoom)]
                 if s_eye is not None: scmd += ["--eye-y", str(s_eye)]
@@ -312,7 +312,7 @@ def run(work_dir, config, inputs, inputs_meta, project, manifest, out_path):
 
     full_out = out_path.parent / (out_path.stem + "_fullpass.mp4") if split_idxs else out_path
 
-    cmd = ["python3", str(QA_REFRAME), str(cut_out), str(full_out),
+    cmd = [sys.executable, str(QA_REFRAME), str(cut_out), str(full_out),
            "--preset", preset, "--res", res]
     if zoom is not None: cmd += ["--zoom", str(zoom)]
     if eye_y is not None: cmd += ["--eye-y", str(eye_y)]
@@ -418,7 +418,7 @@ def run(work_dir, config, inputs, inputs_meta, project, manifest, out_path):
             # vertical slices to center each in its square.)
             top_cy = int(top_cfg.get("crop_y", crop_y))
             bot_cy = int(bot_cfg.get("crop_y", crop_y))
-            ff(["python3", str(MAKE_SPLIT), "--speaker", str(top), "--guest", str(bot),
+            ff([sys.executable, str(MAKE_SPLIT), "--speaker", str(top), "--guest", str(bot),
                 "--out", str(section), "--audio", "none", "--width", str(width),
                 "--crop-y", str(top_cy), "--guest-crop-y", str(bot_cy),
                 "--shadow-strength", str(shadow)])

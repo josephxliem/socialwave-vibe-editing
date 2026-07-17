@@ -35,7 +35,9 @@ from pathlib import Path
 SLOTS = int(os.environ.get("VIBE_ENCODE_SLOTS", "3"))
 
 # Lock dir lives in /tmp so it's automatically cleaned on reboot and writable by every user.
-SLOT_DIR = Path(os.environ.get("VIBE_ENCODE_SLOT_DIR", "/tmp/acq_encode_slots"))
+import tempfile
+SLOT_DIR = Path(os.environ.get("VIBE_ENCODE_SLOT_DIR",
+                               str(Path(tempfile.gettempdir()) / "acq_encode_slots")))
 
 
 def _ensure_slots():

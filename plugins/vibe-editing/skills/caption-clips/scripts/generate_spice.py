@@ -193,16 +193,42 @@ def main() -> int:
     except Exception:
         pass
     _use_idx = len(_sib_words) == N
+    # NUMERIC-MERGE TOLERANCE (2026-07-17): spice_format can MERGE tokens ("million dollars" ->
+    # "$1M"), leaving the sibling transcript a few tokens longer than spice_norm. Strict 1:1 then
+    # fails and used to disable orig-casing for the WHOLE clip (names rendered lowercase - "charlie
+    # morgan"). When counts differ, align by difflib on bare letters instead; only the merged tokens
+    # themselves fall back to the norm word ("$1M", already styled).
+    _idx_map = None
+    if _sib_words and not _use_idx:
+        import difflib as _dl
+        _bl = lambda w: "".join(c for c in str(w).lower() if c.isalnum())
+        _sm = _dl.SequenceMatcher(a=[_bl(w.get("word", "")) for w in _sib_words],
+                                  b=[_bl(w["word"]) for w in words], autojunk=False)
+        _idx_map = {}
+        for _tag, _i1, _i2, _j1, _j2 in _sm.get_opcodes():
+            if _tag == "equal":
+                for _off in range(_i2 - _i1):
+                    _idx_map[_j1 + _off] = _i1 + _off
+    def _sibw(i):
+        if _use_idx:
+            return _sib_words[i]
+        if _idx_map is not None:
+            m = _idx_map.get(i)
+            if m is not None:
+                return _sib_words[m]
+        return None
     SENT_END_T = set(round(float(_w["end"]), 2) for _w in _sib_words
                      if str(_w.get("word", "")).rstrip().endswith((".", "!", "?", ",", ";", ":")))
     def _is_sentence_end(i):
-        if _use_idx:
-            return str(_sib_words[i].get("word", "")).rstrip().endswith((".", "!", "?", ",", ";", ":"))
+        w = _sibw(i)
+        if w is not None:
+            return str(w.get("word", "")).rstrip().endswith((".", "!", "?", ",", ";", ":"))
         return round(float(words[i]["end"]), 2) in SENT_END_T
     def _orig_case(i):
         # Original sentence-case / proper-noun casing from the transcript (spice_norm is lowercased).
-        if _use_idx:
-            return _sib_words[i].get("word", words[i]["word"])
+        w = _sibw(i)
+        if w is not None:
+            return w.get("word", words[i]["word"])
         return words[i]["word"]
 
     # --- style stream ---
@@ -801,7 +827,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
     if a.burn:
         out = a.burn_out or a.burn.with_name(a.burn.stem + "_spice.mp4")
-        fdir = str((SKILL / P["fonts_dir"]).resolve()).replace(":", r"\:")
+        fdir = (SKILL / P["fonts_dir"]).resolve().as_posix().replace(":", r"\:")
         # Bitrate must track the ACTUAL burn output resolution, not the preset PlayRes (which only
         # drives caption scaling). Else a 720 proxy gets the 4K bitrate -> ~5x too big. Probe the input.
         venc = (list(encoder_args_for(str(a.burn), "ffmpeg", tier="delivery")) if encoder_args_for
@@ -812,9 +838,9 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             # One white blob (from the shadow ASS) -> two independently blurred/offset layers:
             #   WIDE (soft, underneath) then TIGHT (dense, on top) -> crisp text on top.
             # Each layer: gblur(sigma) -> curves(intensity) -> alphamerge w/ solid black -> overlay(dx,dy).
-            sh_sub  = str(shadow_ass_path).replace(":", r"\:")
-            sh2_sub = str(shadow2_ass_path).replace(":", r"\:")
-            tx_sub  = str(text_ass_path).replace(":", r"\:")
+            sh_sub  = _pl.Path(shadow_ass_path).as_posix().replace(":", r"\:")
+            sh2_sub = _pl.Path(shadow2_ass_path).as_posix().replace(":", r"\:")
+            tx_sub  = _pl.Path(text_ass_path).as_posix().replace(":", r"\:")
             # ALPHA-OVERLAY FIX (2026-07-16): on a transparent base the ass/subtitles filter leaves the
             # alpha channel UNTOUCHED by default, so crisp text drawn over transparent keeps ~0 alpha and
             # composites faded/shadow-eaten (letters "cut off"). alpha=1 makes libass write the alpha
@@ -881,7 +907,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 ])
         else:
             # Classic single-pass ASS burn
-            sub = str(a.out).replace(":", r"\:")
+            sub = _pl.Path(a.out).as_posix().replace(":", r"\:")
             r = subprocess.run([
                 "ffmpeg", "-y", "-hide_banner", "-loglevel", "error", "-i", str(a.burn),
                 "-vf", f"subtitles=filename='{sub}':fontsdir='{fdir}'",

@@ -113,7 +113,7 @@ def main():
     segclips, smap, off = [], [], 0.0
     for i, (s, e) in enumerate(spans):
         sc = renders / f"seg{i}_{a.title}.mp4"
-        subprocess.run(["python3", str(SCRIPTS / "multicut.py"), "--config", str(a.config),
+        subprocess.run([sys.executable, str(SCRIPTS / "multicut.py"), "--config", str(a.config),
                         a.ep, f"{s}", f"{e}", str(sc), "switch"], capture_output=True, text=True)
         if not sc.exists():
             sys.exit(f"X multicut failed seg{i}")
@@ -156,7 +156,7 @@ def main():
     dur = float(subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "format=duration",
                                          "-of", "csv=p=0", str(combined)]).strip())
     # multifinish with t0=0: the FINAL(tight)->clip mapping then matches the smap's continuous-clip time.
-    r = subprocess.run(["python3", str(SCRIPTS / "multifinish.py"), "--config", str(a.config),
+    r = subprocess.run([sys.executable, str(SCRIPTS / "multifinish.py"), "--config", str(a.config),
                         a.ep, "0", f"{dur}", str(combined), str(out),
                         "--music", a.music, "--speaker-map", str(smapf)], capture_output=True, text=True)
     print((r.stdout.strip().splitlines() or [""])[-1])
