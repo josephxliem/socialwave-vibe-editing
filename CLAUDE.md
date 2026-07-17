@@ -76,7 +76,8 @@ The division of labour: **the editor owns TIMING + WORDING + CUTS (in Premiere);
 1. Editor gives Claude the long-form video (+ optionally a topic). Claude scans the transcript,
    pitches 2-3 reel options (hook / arc / length), editor picks.
 2. Claude cuts + renders review MP4s (face-tracked 9:16, brand captions) and QCs them
-   frame-by-frame (claude-video /watch) BEFORE the editor sees them.
+   frame-by-frame BEFORE the editor sees them (claude-video /watch skill if installed, else
+   ffmpeg contact sheets: fps=1 + tile, then READ the sheets and verify every caption).
 3. Editor watches the MP4s. Approve → done. Tweaks → step 4.
 4. Claude builds Premiere sequences: V1 = assembly cut (trimmable), V2 = exact-look caption
    overlay (ALPHA .mov, scale 50% in a 1080x1920 seq), + an editable caption track (plain SRT).
