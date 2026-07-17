@@ -12,9 +12,11 @@ numpy<2.3
 pillow
 opencv-contrib-python
 requests
+scipy
+librosa
+soundfile
 
 # Optional extras (only needed for specific side-features):
-# librosa        — music tempo / multicam sync (highlight skill)
 # wordfreq       — transcript fragment detection (normalize_transcript)
 # openai         — LLM music picker / llm_edit
 # anthropic      — LLM assembly validator

@@ -97,8 +97,9 @@ if brew_need:
             print("    # Homebrew first: /bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"")
         print(f"    brew install {_pkgs}")
 if pip_need:
-    print(f"    cd {ROOT} && python3 -m venv .venv && source .venv/bin/activate \\")
-    print(f"        && pip install {' '.join(dict.fromkeys(pip_need))}")
+    print(f"    cd {ROOT} && uv venv --python 3.12 .venv \\")
+    print(f"        && uv pip install --python .venv/bin/python {' '.join(dict.fromkeys(pip_need))}")
+    print("    # (python3 -m venv is broken on Homebrew python 3.14 — use uv. Windows venv python: .venv\\Scripts\\python.exe)")
     if "faster-whisper" in pip_need:
         print("    # ↑ FASTER alternative: skip whisper and paste a free GROQ_API_KEY into")
         print("    #   config/keys.env (console.groq.com) — ~10x faster, better quality, no install.")
