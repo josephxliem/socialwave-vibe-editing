@@ -48,10 +48,16 @@ ONE question at a time when you need input.
   `plugins/vibe-editing/config/keys.env` as `GROQ_API_KEY=...`, `chmod 600` it, and verify
   it's gitignored. No key? Fine — the pipeline auto-falls-back to Parakeet MLX (offline).
 
-### Step 5 — Premiere Pro MCP bridge
-- Install from https://github.com/leancoderkavy/premiere-pro-mcp (follow its README: the CEP
-  plugin + MCP server). Add it to Claude Code's MCP config. Verify with the `ping` tool —
-  it should report the Premiere version with Premiere open.
+### Step 5 — Premiere Pro MCP bridge (one command)
+- The kit repo ships an installer that does everything (npm server pinned to the team's
+  known-good version, CEP panel, debug mode, Claude Code registration):
+  - macOS:   `bash <repo>/scripts/install_premiere_bridge.sh`
+  - Windows: `powershell -ExecutionPolicy Bypass -File <repo>\scripts\install_premiere_bridge.ps1`
+  (Needs Node.js first: `brew install node` / `winget install OpenJS.NodeJS.LTS`.)
+- Then: restart Premiere, open **Window → Extensions → MCP Bridge** once, and verify with the
+  `ping` tool from Claude Code — it should report the Premiere version.
+- Upstream project (MIT): https://github.com/leancoderkavy/premiere-pro-mcp — to adopt a newer
+  bridge version, test it, then bump the pinned version in the install scripts via PR.
 
 ### Step 5b — QC skill (claude-video /watch)
 - Clone `https://github.com/bradautomates/claude-video` next to the kit (e.g. `~/Documents/claude-video`).
