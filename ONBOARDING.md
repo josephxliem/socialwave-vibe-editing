@@ -1,130 +1,106 @@
-# Vibe Editing — Setup
+# Social Wave — AI Reel Editing Setup (Vibe Editing kit)
 
-Turn your long videos into finished, captioned vertical clips — **in your own brand** — without
-editing anything yourself. **You do not need to be technical.** The Claude Code app does the whole
-setup for you and asks you a few simple questions along the way.
+Welcome! This guide sets up the Social Wave AI editing workflow on your Mac. **You don't do any
+of this by hand** — Claude (reading this right now) does the installing, checking, and testing
+for you. Budget ~20–30 minutes, mostly waiting on downloads.
 
-**Repo:** https://github.com/maddexritter-rgb/vibe-editing
+## What you're getting
 
----
+A proven pipeline where you give Claude a long-form client video and get back finished
+9:16 reels: face-tracked crop, brand-styled captions (the per-word colour "spice" look),
+delivered as MP4s for review and as editable Premiere sequences for fine-tuning. The
+caption round-trip means you edit text/timing in Premiere and Claude re-bakes the exact
+styled look on your edits.
 
-## How to set it up — 3 steps (about 10–15 minutes, mostly just answering questions)
+## Instructions for Claude
 
-**1. Get the Claude Code desktop app** → **https://claude.com/claude-code**
-Download it, open it, and sign in. (You need a paid Claude plan — Pro or Max.) This one app does everything — there's no other software to install.
+You are setting up a NON-TECHNICAL video editor. Do everything for them — never make them run
+terminal commands or edit files. Explain in plain English, keep a visible to-do list, and ask
+ONE question at a time when you need input.
 
-**2. Start a new chat and paste the big box below.**
-Copy **everything between "✂️ COPY FROM HERE" and "COPY TO HERE ✂️"** and paste it into the chat. (You can also just drop this whole document into the chat — Claude will know what to do.)
+### Step 1 — Prerequisites check
+- Confirm this is an Apple Silicon Mac (`uname -m` → arm64). The offline transcriber needs it.
+- Confirm Adobe Premiere Pro is installed (they're an editor — it should be).
+- Install Homebrew if missing, then: `ffmpeg`, `yt-dlp`, `uv`, `gh` (optional).
 
-**3. Answer its questions.**
-Claude installs what it needs, then asks about your brand — logo, fonts, colors, music, and how you like your clips. Answer in plain English, and **drag in files** (like your logo) when it asks. When it's done, it makes you a test clip.
+### Step 2 — Get the kit
+- The user needs access to the private repo `josephxliem/socialwave-vibe-editing`.
+  If `git clone https://github.com/josephxliem/socialwave-vibe-editing.git ~/Documents/vibe-editing`
+  fails with auth/404, have them ask Joseph to add their GitHub account as a collaborator
+  (repo → Settings → Collaborators), then authenticate with `gh auth login --web` (they approve
+  in their browser — never handle their password yourself).
 
-> 💡 **Two things to expect:** (a) Claude may ask permission to install something or run a step — just click **Allow / Yes**. (b) It keeps a **checklist at the top of the chat** so you can watch it work through the setup.
+### Step 3 — Python environment
+- In `~/Documents/vibe-editing/plugins/vibe-editing/`: create the venv with
+  `uv venv --python 3.12 .venv` (Homebrew Python 3.14 has a broken pyexpat — use uv's 3.12).
+- Install deps with `uv pip install --python .venv/bin/python` — the kit's requirements plus:
+  `faster-whisper parakeet-mlx silero-vad mediapipe assemblyai "numba>=0.61" "llvmlite>=0.44" "numpy<2.3"`.
+- Run the kit's doctor script if present and fix anything it flags until READY.
+- Smoke-test: reframe a few seconds of any 16:9 video via
+  `skills/horizontal-to-vertical/scripts/qa_reframe_v2.py` (run with the venv's bin prefixed to
+  PATH), and transcribe 5s with `skills/caption-clips/scripts/transcribe_parakeet.py`
+  (first run downloads ~600MB model — that's normal).
 
----
+### Step 4 — Transcription key (optional but recommended)
+- Groq is the fastest transcriber. Have the user create their OWN free key at
+  https://console.groq.com (never share keys between team members). Save it to
+  `plugins/vibe-editing/config/keys.env` as `GROQ_API_KEY=...`, `chmod 600` it, and verify
+  it's gitignored. No key? Fine — the pipeline auto-falls-back to Parakeet MLX (offline).
 
-### ✂️ COPY FROM HERE ⬇️
+### Step 5 — Premiere Pro MCP bridge
+- Install from https://github.com/leancoderkavy/premiere-pro-mcp (follow its README: the CEP
+  plugin + MCP server). Add it to Claude Code's MCP config. Verify with the `ping` tool —
+  it should report the Premiere version with Premiere open.
 
-```
-You're setting up "Vibe Editing" for me on this Mac. I am NOT technical — so do everything
-yourself, never make me run a terminal command or edit a file by hand, and explain each step in
-plain English. Keep a visible to-do list of the steps below and check them off as you go.
+### Step 5b — QC skill (claude-video /watch)
+- Clone `https://github.com/bradautomates/claude-video` next to the kit (e.g. `~/Documents/claude-video`).
+  Its `/watch` skill extracts frames from renders so you can QC captions/cuts frame-by-frame.
+  If it's unavailable, QC with ffmpeg contact sheets instead: extract 1 frame/sec and tile them
+  (`ffmpeg -i reel.mp4 -vf "fps=1,scale=270:480,tile=8x8" sheet.jpg`), then READ the sheets and
+  verify every caption is correct and fully visible BEFORE showing the user anything.
 
-1) GET THE KIT
-   - Clone it into my Documents folder:
-       git clone https://github.com/maddexritter-rgb/vibe-editing.git
-   - Then do all the work inside that "vibe-editing" folder.
-   - If git or Homebrew isn't installed, install them first, yourself.
+### Step 6 — Read the playbook
+- Read `~/Documents/vibe-editing/CLAUDE.md` fully — especially
+  "THE PROVEN REEL WORKFLOW", the clip rules, folder conventions, and the Gotchas section.
+  These are hard-won; follow them exactly. Key rules to internalize:
+  - The editor owns timing/wording/cuts (in Premiere); Claude owns the look (captions/render).
+  - QC every render frame-by-frame BEFORE the editor sees it.
+  - NEVER write to the team Dropbox — editors drag approved files in themselves.
+  - Reel naming: `SW <NN> - <full video title> REEL<NN>_Ready.mp4`.
 
-2) SET UP MY MACHINE (install only what's missing — everything here is free + open-source)
-   - Run:  python3 plugins/vibe-editing/doctor.py   (it shows what's installed vs missing).
-   - Install ONLY the missing pieces yourself: ffmpeg, yt-dlp, tesseract, rclone, and a Python
-     virtual environment (.venv) with the kit's libraries + faster-whisper (offline transcription).
-   - Re-run doctor.py until it prints READY, then tell me in plain English that it's ready.
+### Step 7 — Test reel
+- Ask the user for any client long-form video (or a YouTube link — yt-dlp can fetch it).
+- Run the full workflow once: pitch 2–3 reel options → they pick one → cut, reframe, caption,
+  QC with contact sheets → deliver the MP4 to their Downloads.
+- Then build the Premiere sequences (V1 cut + V2 exact-look overlay + editable caption track)
+  and walk them through one caption-edit round-trip (edit → ⌘M sidecar SRT export → rebuild).
 
-3) HOW I'LL MAKE CLIPS (nothing for me to type)
-   - I don't need to install or type any command for this. The folder has a CLAUDE.md that tells
-     you how to run the pipeline, so I'll just say "make clips from this video" in plain English
-     and you'll run it for me.
-   - (OPTIONAL — only if I specifically want a /edit shortcut: give me these two lines to paste,
-     one at a time:  /plugin marketplace add .  then  /plugin install vibe-editing@vibe-editing-marketplace)
+### Step 8 — Client brand setup (when working on a non-Kan client)
+- The Social Wave / Kan caption preset is `presets/spice_socialwave.json`. For a NEW client,
+  run the brand interview (one question at a time): brand name, logo, caption font + look
+  (ask for reference screenshots), music yes/no, topics, hook/ending style, editing
+  preferences. Create a new `spice_<client>.json` preset from the socialwave one and iterate
+  on a test clip until they love it.
 
-4) FAST TRANSCRIPTION (free key — walk me through getting it)
-   - I should get a free Groq key so transcription is fast. Give me simple click-by-click steps:
-     go to console.groq.com, sign up free, create an API key, copy it.
-   - Then ask me to paste it here, and you save it into the kit's keys file for me.
-   - If I'd rather skip it, set the kit to use the free offline transcription instead.
+## 🪟 Windows differences (read this if the user is on Windows)
 
-5) MAKE IT MY BRAND (interview me — ask ONE question at a time and wait for each answer)
-   - What's my brand / channel name?
-   - Do I have a logo? (tell me to drag the image into this chat; put it on the clip end-card)
-   - What caption font do I want? (show me a few from the ~50 free fonts included, or let me drop
-     my own font file)
-   - What caption look? (ask me to paste a screenshot of a caption style I like, and match the
-     font + colors + emphasis to it)
-   - Do I have music? (let me drop royalty-free tracks, or use the defaults)
-   - What are my videos about, how should a clip OPEN (the hook), and how should it END?
-   - Any editing preferences? (tighter cuts, bigger captions, don't open on a question, etc.)
-   - Then apply ALL my answers to the kit's settings + editing rules, and show me what changed.
+The kit has been patched for Windows (subprocess calls use `sys.executable`, ffmpeg filter
+paths use forward slashes, temp dirs are platform-aware) but has NOT yet been battle-tested
+there — expect to fix a quirk or two on the first reel, and **commit those fixes back as a PR**
+so Windows becomes proven for the whole team.
 
-6) MAKE A TEST CLIP
-   - Ask me for one video (a YouTube link, or a file on my computer), run the edit on it, and show
-     me the finished clip (it lands in the 20_DELIVER folder). Ask what I'd change, adjust, and
-     re-run until I love it.
+- **Step 1**: skip the Apple Silicon check. Install with `winget install Gyan.FFmpeg yt-dlp.yt-dlp astral-sh.uv Git.Git GitHub.cli` (or choco equivalents). A machine with an NVIDIA GPU is nice but not required — the kit falls back to software x264 encoding automatically (renders are slower; fine).
+- **Step 3**: the venv's python lives at `.venv\Scripts\python.exe` (not `.venv/bin/python`).
+  **Do NOT install `parakeet-mlx`** — it's Apple-Silicon-only and the pip install will fail.
+  Install the rest: `faster-whisper silero-vad mediapipe assemblyai "numba>=0.61" "llvmlite>=0.44" "numpy<2.3"`.
+- **Step 4 is REQUIRED, not optional**: without Parakeet, a **Groq API key is the primary
+  transcriber** (free at console.groq.com). `faster-whisper` remains the offline fallback.
+- **Step 5**: Premiere Pro and the CEP-based MCP bridge both run on Windows, but the bridge
+  is unverified there — test `ping` early, and if it misbehaves report exactly what happened.
+- Long-path issues: if git clone or renders fail with path errors, enable Windows long paths
+  (`git config --global core.longpaths true` and the LongPathsEnabled registry setting).
 
-7) (OPTIONAL) STRONGER AUDITS ON LONG VIDEOS
-   - The quality checks already run automatically. If I want the best results on long (>3 min)
-     videos, offer to also set up the free Gemini "watch" add-on, and walk me through that key too.
-
-Throughout: be patient, assume I've never used a terminal, and tell me what's happening in plain
-English. Only use this kit — don't pull tools or keys from anywhere else on my computer.
-```
-
-### ⬆️ COPY TO HERE ✂️
-
----
-
-## Once it's set up
-
-- **Make clips anytime:** open Claude Code in the `vibe-editing` folder and just say *"make clips from this"* with a YouTube link or a video file — Claude already knows what to do, no command needed. *(An optional `/edit` shortcut exists if you set it up.)*
-- **Want longer horizontal "mid" videos for subscriber growth?** (16:9 clips from a Q&A / podcast, not 9:16 shorts) — say *"mine highlights from this"*. It ranks the strongest moments, cuts them, and appends your own outro if you've put one in `brand/cta/`. To title + schedule them to your channel afterward, say *"post and schedule these"* (connects to your own YouTube).
-- **Want to auto-post your finished shorts on a schedule?** Say *"fill my queue"* — it queues your 9:16 shorts to your channel through Buffer, hands-off. *(This one needs your own Buffer account + a storage bucket; the skill's `buffer/README.md` walks you through it.)*
-- **Your finished clips** show up in that project's **`20_DELIVER/`** folder.
-- **Change anything later** — just tell Claude in plain English: *"make the captions bigger," "use this new logo," "cut it tighter," "don't open on a question."* It updates itself.
-- **Want the deeper walkthrough?** Open **`Vibe-Editing-Playbook.pdf`** in the same folder.
-
----
-
-<details>
-<summary><strong>For the technical / curious — what Claude is doing under the hood (you can ignore this)</strong></summary>
-
-**The tools it installs** (all free, open-source — Claude installs only what's missing):
-
-| Tool | What it's for |
-|---|---|
-| **Homebrew** | Mac package manager (only if you don't already have it) |
-| **ffmpeg** | the engine — cuts, encodes, reframes, extracts frames |
-| **yt-dlp** | pulls a video down from a YouTube / URL link |
-| **tesseract** | OCR — the caption audit reads your burned-in captions to verify them |
-| **rclone** | *(optional)* pulls footage from a Google Drive link |
-| **Python 3 + a local `.venv`** | runs the pipeline scripts (OpenCV, NumPy, etc.) |
-| **faster-whisper** | offline transcription so it works with **no API key** |
-
-**Keys** (in `plugins/vibe-editing/config/keys.env`): `GROQ_API_KEY` (free, fast transcription — recommended), `ANTHROPIC_API_KEY` (optional, most reliable caption styling), `GEMINI_API_KEY` (optional, long-video "eyes").
-
-**Enable the plugin manually:** `/plugin marketplace add .` then `/plugin install vibe-editing@vibe-editing-marketplace`.
-
-**Brand levers, by hand** (under `plugins/vibe-editing/`):
-
-| To change… | Edit |
-|---|---|
-| Caption colors / size / emphasis | `skills/caption-clips/presets/spice.json` |
-| Caption font | the bundled `skills/caption-clips/fonts/` (see `FONTS.md`), or drop your own, then set it in the preset |
-| What makes a clip worth cutting (your SOP) | `skills/edit/prompts/clip_select.md` + `references/editorial_sop.md` |
-| Music | drop tracks in `brand/music/` (set `VIBE_MUSIC=/your/music`) |
-
-**The 6 quality gates** (run automatically inside `/edit`): mechanics · narrative · visual (face/framing) · audio (levels) · captions (accuracy/timing) · script (cold-viewer test). A clip that fails one doesn't ship. Optional Gemini "eyes" for long-form: free key at https://aistudio.google.com/apikey, add the `claude-video-vision` MCP, then `video_configure backend=gemini-api`.
-
-*Windows: install [WSL](https://learn.microsoft.com/windows/wsl/install) first, then do everything inside your WSL terminal.*
-
-</details>
+## When something breaks
+Check the Gotchas section of CLAUDE.md first — the answer is probably there. Still stuck?
+Ask Joseph. Improvements welcome: commit fixes on a branch and open a PR on the repo so the
+whole team benefits.

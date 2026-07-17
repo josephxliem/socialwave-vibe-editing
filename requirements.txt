@@ -1,0 +1,16 @@
+# Vibe Editing kit — Python deps (install into plugins/vibe-editing/.venv, Python 3.12 via uv)
+#   uv venv --python 3.12 plugins/vibe-editing/.venv
+#   uv pip install --python plugins/vibe-editing/.venv/bin/python -r requirements.txt
+# (Windows venv python: plugins\vibe-editing\.venv\Scripts\python.exe)
+faster-whisper
+silero-vad
+mediapipe
+assemblyai
+numba>=0.61
+llvmlite>=0.44
+numpy<2.3
+pillow
+opencv-contrib-python
+
+# Apple Silicon ONLY — offline transcription (skip on Windows/Linux; pip install fails there):
+# parakeet-mlx
