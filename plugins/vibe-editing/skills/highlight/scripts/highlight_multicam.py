@@ -19,6 +19,7 @@ Renders each block, concats, muxes the continuous audio. Append the optional CTA
 (highlight_cta.py) or let highlight_cut.py handle it.
 """
 # ── vibe-editing portable path bootstrap ──
+import sys
 import os as _os, sys as _sys
 def _vibe_root():
     r = _os.environ.get("VIBE_PIPELINE_ROOT") or _os.environ.get("CLAUDE_PLUGIN_ROOT")

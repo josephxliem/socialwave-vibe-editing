@@ -60,6 +60,7 @@ if VIBE_SHARED not in _sys.path:
 import argparse
 import json
 import subprocess
+import sys
 from pathlib import Path
 
 SKILL = Path(__file__).resolve().parent.parent

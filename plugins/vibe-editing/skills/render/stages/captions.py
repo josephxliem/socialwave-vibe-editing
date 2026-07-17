@@ -28,6 +28,7 @@ the two panels"). make_splitscreen always stacks 50/50, so the seam is exactly 5
 present, so a project left on a chest-line preset (e.g. spice_speaker58 @58%) can no longer ship a
 split clip with mis-placed captions. (It was a manual step and got missed — now it's code.)
 """
+import sys
 from __future__ import annotations
 
 # ── vibe-editing portable path bootstrap (auto-inserted) ──

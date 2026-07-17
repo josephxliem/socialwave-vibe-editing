@@ -20,6 +20,7 @@ Manifest format (JSON):
     ]
   }
 """
+import sys
 from __future__ import annotations
 
 # ── vibe-editing portable path bootstrap (auto-inserted) ──
