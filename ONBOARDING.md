@@ -82,12 +82,16 @@ ONE question at a time when you need input.
 - Then build the Premiere sequences (V1 cut + V2 exact-look overlay + editable caption track)
   and walk them through one caption-edit round-trip (edit → ⌘M sidecar SRT export → rebuild).
 
-### Step 8 — Client brand setup (when working on a non-Kan client)
-- The Social Wave / Kan caption preset is `presets/spice_socialwave.json`. For a NEW client,
-  run the brand interview (one question at a time): brand name, logo, caption font + look
-  (ask for reference screenshots), music yes/no, topics, hook/ending style, editing
-  preferences. Create a new `spice_<client>.json` preset from the socialwave one and iterate
-  on a test clip until they love it.
+### Step 8 — Client brand setup (per client, LOCAL — never committed)
+- Brand identity is per-client and lives only on the editor's machine: `brand/` is gitignored.
+  For each client, run the brand interview (ONE question at a time): brand name, logo, caption
+  font + look (ask for reference screenshots), colours, music yes/no, topics, hook/ending
+  style, editing preferences.
+- Then: copy `docs/brand-profile.example.md` → `brand/brand-profile.md` and fill it in, and
+  copy `skills/caption-clips/presets/spice_socialwave.json` → `spice_<client>.json` as the
+  proven starting point for the caption look. Iterate on a test clip until the client loves it.
+- Working on Kan / Social Wave's own content? The defaults are already in CLAUDE.md — no
+  interview needed.
 
 ## 🪟 Windows differences (read this if the user is on Windows)
 
