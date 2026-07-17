@@ -33,8 +33,9 @@ ONE question at a time when you need input.
 ### Step 3 — Python environment
 - In `~/Documents/vibe-editing/plugins/vibe-editing/`: create the venv with
   `uv venv --python 3.12 .venv` (Homebrew Python 3.14 has a broken pyexpat — use uv's 3.12).
-- Install deps with `uv pip install --python .venv/bin/python` — the kit's requirements plus:
-  `faster-whisper parakeet-mlx silero-vad mediapipe assemblyai "numba>=0.61" "llvmlite>=0.44" "numpy<2.3"`.
+- Install deps: `uv pip install --python .venv/bin/python -r <repo root>/requirements.txt`
+  (on Apple Silicon, also add `parakeet-mlx` for offline transcription — it's commented in the
+  file because the install fails on Windows/Linux).
 - Run the kit's doctor script if present and fix anything it flags until READY.
 - Smoke-test: reframe a few seconds of any 16:9 video via
   `skills/horizontal-to-vertical/scripts/qa_reframe_v2.py` (run with the venv's bin prefixed to
