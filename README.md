@@ -6,9 +6,10 @@ The full short-form pipeline as a Claude Code plugin: ingest → transcribe → 
 moments (with a real editorial rubric) → hand-cut → face-track to 9:16 → caption → mix music →
 render → 6-gate audit → deliver.
 
-> **Start here:** open **`ONBOARDING.md`** and paste it into the **Claude Code** app — it installs
-> everything for you and interviews you about your brand (logo, fonts, colors, style), then makes a
-> test clip. No editing software, no terminal. `Vibe-Editing-Playbook.pdf` is the deeper walkthrough.
+> **🌊 Social Wave team — start here:** tell Claude Code
+> *"I'm a new Social Wave editor — clone this repo, read ONBOARDING.md, and set me up."*
+> It installs everything for you and runs your first test reel. No terminal work needed.
+> (Operating manual once installed: `CLAUDE.md`. Deeper background: `Vibe-Editing-Playbook.pdf`.)
 
 ## Quickstart
 ```
