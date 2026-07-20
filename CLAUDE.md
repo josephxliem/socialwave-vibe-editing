@@ -138,3 +138,15 @@ starting template** — it documents every field. Run with the kit venv's python
 5. **Framing: TIGHT + follow the subject** — like the SW22 assembly look. Zoom ~1.6, camera
    PANS with the subject when they move and returns with them (responsive smoothing, not a
    static hold). Always on the subject; other people in frame never anchor the crop.
+
+### ⚡ RENDER ECONOMY (Joseph, 2026-07-20 — the bridge exists so we DON'T re-render)
+**Render heavy exactly ONCE per reel. Every iteration after that happens in Premiere via the bridge.**
+- First master render: 1080p for review (4K ONLY for the approved final export). Parallelize
+  multi-reel renders when the machine allows.
+- Cut tweaks / pause & filler removal on an existing reel: razor + ripple the EXISTING Premiere
+  sequence (V1+V2 cut together, so the caption overlay stays in sync). NEVER re-run the pipeline.
+- Framing/zoom nudges: adjust V1 Motion scale/position in Premiere. Instant.
+- Title text: an EDITABLE Premiere text layer in the sequence; burn only at final export.
+- Caption wording/timing changes: SRT round-trip → captions-only re-bake (~5 min), never full pipeline.
+- A full re-render is justified ONLY when baked pixels must change (tracking behavior, new footage,
+  reframe algorithm). If you're about to re-render, first ask: "can Premiere do this in seconds?"
