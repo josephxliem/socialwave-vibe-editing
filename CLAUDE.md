@@ -122,3 +122,19 @@ starting template** — it documents every field. Run with the kit venv's python
   running — verify the file exists; fallback = reproduce the timeline with ffmpeg from clip
   geometry. Caption tracks are invisible to scripting (the SRT sidecar export is the only way
   to read the editor's caption edits).
+
+### 🌊 SOCIAL WAVE — REEL QUALITY RULES v2 (Joseph, 2026-07-20 — MANDATORY on every reel)
+1. **Micro-cut before the editor ever sees it**: remove ums/ahs/filler non-words AND cap every
+   pause (jumpcut model: no pause longer than ~0.5s, trim the middle, keep natural beats).
+   Fillers and dead air distract from the message — cutting them is Claude's job, not the editor's.
+2. **Captions contain ONLY what's spoken in the final clip** — no filler words, no non-words,
+   ever. The caption pipeline strips {um, uh, ah, erm, mm} tokens as a hard filter.
+3. **Hook-first structure**: the reel's FIRST line must be its strongest line WITH enough context
+   to stand alone. Verbatim re-ordering is allowed (pull the payoff line forward as the hook when
+   the chronological order buries it). A reel that merely starts "where the topic started" is weak.
+4. **Title text is part of every reel**: on-screen title (scroll-stopper, gives premise/context)
+   burned at the top of frame. Write it per the kan-title-text rules: bold claim or curiosity,
+   numbers/specifics where possible, complements (never duplicates) the hook line.
+5. **Framing: TIGHT + follow the subject** — like the SW22 assembly look. Zoom ~1.6, camera
+   PANS with the subject when they move and returns with them (responsive smoothing, not a
+   static hold). Always on the subject; other people in frame never anchor the crop.
