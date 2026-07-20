@@ -127,7 +127,13 @@ Dialogue: 1,{tc(0)},{tc(end)},Title,,0,0,0,,{{\\an8\\pos({W//2},{y})}}{text}
     sub = Path(tmp.name).as_posix().replace(":", r"\:")
     fdir = FONTS.resolve().as_posix().replace(":", r"\:")
 
-    if a.alpha:
+    if a.out.lower().endswith(".png"):
+        # single transparent PNG (static title card for a Premiere V2 layer)
+        cmd = ["ffmpeg", "-y", "-hide_banner", "-loglevel", "error",
+               "-f", "lavfi", "-i", f"color=c=black@0.0:s={W}x{H}:r=25:d=0.04,format=yuva444p",
+               "-vf", f"ass='{sub}':fontsdir='{fdir}':alpha=1",
+               "-frames:v", "1", a.out]
+    elif a.alpha:
         cmd = ["ffmpeg", "-y", "-hide_banner", "-loglevel", "error",
                "-f", "lavfi", "-i", f"color=c=black@0.0:s={W}x{H}:r=25:d={end:.3f},format=yuva444p",
                "-vf", f"ass='{sub}':fontsdir='{fdir}':alpha=1",
