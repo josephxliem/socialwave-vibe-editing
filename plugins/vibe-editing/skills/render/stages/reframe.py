@@ -327,6 +327,10 @@ def run(work_dir, config, inputs, inputs_meta, project, manifest, out_path):
         if len(roi) != 4:
             raise RuntimeError(f"reframe.roi must be [x0,y0,x1,y1], got {roi!r}")
         cmd += ["--roi"] + [str(v) for v in roi]
+    # smooth — X-tracking responsiveness (frames). Default 41 = stable-but-static hold; lower
+    # (~11-15) makes the camera FOLLOW a moving subject and return with them (SW rule 2026-07-20).
+    if config.get("smooth") is not None:
+        cmd += ["--smooth", str(config["smooth"])]
     # detw — face-DETECTION width. Default suits 4K close shots; a WIDE 1080p angle where the
     # subject is small/distant (e.g. the A-cam rescue) needs a high detw (e.g. 1920) or YuNet
     # misses the tiny face. (Added 2026-06-13 with the A-cam two-angle rescue.)

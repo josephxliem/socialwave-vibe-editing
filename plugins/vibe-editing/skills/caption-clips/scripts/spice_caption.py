@@ -116,6 +116,16 @@ def do_gen(inp, gendir, env, args):
         # VIBE_STT_BACKEND=groq|parakeet|assemblyai.
         run([sys.executable, str(SC / "transcribe_auto.py"), str(inp), "--out", str(word),
              "--start", "0", "--end", f"{dur:.3f}"], "transcribe (auto: groq→parakeet→assemblyai)", env)
+    # SOCIAL WAVE RULE (2026-07-20): captions must NEVER contain filler non-words. Strip them from
+    # the word stream before formatting — even if a stray um/uh survives the micro-cut audio.
+    import json as _fj, re as _fre
+    _FILLERS = {"um","uh","ah","erm","mm","hmm","uhm","umm","er"}
+    _wj = _fj.loads(word.read_text())
+    _ws = _wj.get("words", [])
+    _kept = [w for w in _ws if _fre.sub(r"[^a-z]","",w.get("word","").lower()) not in _FILLERS]
+    if len(_kept) != len(_ws):
+        print(f"spice_caption: stripped {len(_ws)-len(_kept)} filler word(s) from captions", flush=True)
+        _wj["words"] = _kept; word.write_text(_fj.dumps(_wj))
     if args.corrections and args.corrections.exists():
         import json as _json, re as _re
         cmap = {k.lower(): v for k, v in _json.loads(args.corrections.read_text()).items()}
