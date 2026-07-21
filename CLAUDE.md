@@ -74,7 +74,12 @@ truth — read it when editing brand config). Defaults, encoded across the pipel
 The division of labour: **the editor owns TIMING + WORDING + CUTS (in Premiere); Claude owns the LOOK (captions/render).**
 
 1. Editor gives Claude the long-form video (+ optionally a topic). Claude scans the transcript,
-   pitches 2-3 reel options (hook / arc / length), editor picks.
+   pitches 2-3 reel options (hook / arc / length), editor picks. **Each pitched option MUST include
+   the full VERBATIM transcript of the proposed reel** (the actual words that will be in the cut,
+   in cut order) — the editor judges reel-worthiness from the TEXT, not just a one-line summary.
+   Assess each against the kan-reel-extraction gates first (standalone hook / body pays off / clean
+   closer; liberation over correction; source not fighting the reel) and say so — a moment can sound
+   good but read as not reel-worthy. This is a hard gate: no cutting before the editor sees the text.
 2. Claude cuts + renders review MP4s (face-tracked 9:16, brand captions) and QCs them
    frame-by-frame BEFORE the editor sees them (claude-video /watch skill if installed, else
    ffmpeg contact sheets: fps=1 + tile, then READ the sheets and verify every caption).
@@ -124,20 +129,38 @@ starting template** — it documents every field. Run with the kit venv's python
   to read the editor's caption edits).
 
 ### 🌊 SOCIAL WAVE — REEL QUALITY RULES v2 (Joseph, 2026-07-20 — MANDATORY on every reel)
-1. **Micro-cut before the editor ever sees it**: remove ums/ahs/filler non-words AND cap every
-   pause (jumpcut model: no pause longer than ~0.5s, trim the middle, keep natural beats).
-   Fillers and dead air distract from the message — cutting them is Claude's job, not the editor's.
+1. **Claude CREATES the clip; the editor trims the pauses/fillers manually (Joseph, 2026-07-20 — REVISED).**
+   Claude's job = selection + hook-first structure + cutting at CLEAN SENTENCE/CLAUSE boundaries
+   (natural silences) + framing. Claude does NOT word-level micro-cut pauses/ums/false-starts —
+   that is the editor's manual pass in Premiere. WHY the reversal: word-level auto-cutting bleeds
+   adjacent dropped words back in (ASR word end-times overlap the next word, so `word-end + pad`
+   re-includes the stumble → "cuts between his words", unclear). Coarse sentence-level cuts land on
+   real silences and stay clean. Keep natural speech inside each chunk; the editor tightens by hand.
 2. **Captions contain ONLY what's spoken in the final clip** — no filler words, no non-words,
    ever. The caption pipeline strips {um, uh, ah, erm, mm} tokens as a hard filter.
+2a. **Captions are VERBATIM-TO-SCRIPT — the approved script is ground truth, NOT the ASR.**
+   Captions are the #1 reason reels get sent back (~2/3 of all revision notes). When a script
+   exists, the caption text/punctuation/casing come from IT, not the transcription. Non-negotiables:
+   exact wording to the script · punctuation correct (open AND close quotation marks) · sentence
+   casing (lowercase mid-sentence words) · numbers written in full ("4000 to 7000") · key payoff
+   figure bolded/emphasised for visibility · ONE accent-colour highlight per point (don't
+   over-colour) · captions synced to when the word is actually said (not early) · repositioned off
+   any on-screen graphic that would clip them · words the speaker didn't say verbatim go in
+   [square brackets]. Spelling checked every time. Full detail + worked examples:
+   `docs/sops/reel-quality-bar.md`.
 3. **Hook-first structure**: the reel's FIRST line must be its strongest line WITH enough context
    to stand alone. Verbatim re-ordering is allowed (pull the payoff line forward as the hook when
    the chronological order buries it). A reel that merely starts "where the topic started" is weak.
 4. **Title text is part of every reel**: on-screen title (scroll-stopper, gives premise/context)
    burned at the top of frame. Write it per the kan-title-text rules: bold claim or curiosity,
    numbers/specifics where possible, complements (never duplicates) the hook line.
-5. **Framing: TIGHT + follow the subject** — like the SW22 assembly look. Zoom ~1.6, camera
-   PANS with the subject when they move and returns with them (responsive smoothing, not a
-   static hold). Always on the subject; other people in frame never anchor the crop.
+5. **Framing: TIGHT + subject's BODY stays CENTERED (HARD RULE, Joseph 2026-07-20).** The subject's
+   body must be centred at all times — including when they gesture or turn to point. Achieve it with a
+   GENTLE, heavily-smoothed follow (smooth ~91) that keeps them centred but drifts slowly — NOT a
+   static hold (static lets them slide off-centre on a gesture) and NOT a twitchy/sensitive follow
+   (movement must be minimal). Reset the crop per cut (single-angle assembled cut → `--cut-frames` +
+   `--global-y` for one consistent eyeline). Always on the subject; other people in frame never anchor
+   the crop (constrain the ROI to the standing presenter). See [[premiere-editable-reframe]].
 
 ### ⚡ RENDER ECONOMY (Joseph, 2026-07-20 — the bridge exists so we DON'T re-render)
 **Render heavy exactly ONCE per reel. Every iteration after that happens in Premiere via the bridge.**

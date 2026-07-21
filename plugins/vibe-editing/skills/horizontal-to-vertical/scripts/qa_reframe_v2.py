@@ -123,6 +123,11 @@ ap.add_argument("--cut-frames", default=None,
                      "per-cut single-pass tracking (per-segment Y-lock + X-smoothing, ONE render pass, "
                      "no concat) — instead of visual scene auto-detection (which can't see a same-angle "
                      "seam). This is what the render pipeline passes from cut.meta.segments.")
+ap.add_argument("--emit-path", default=None, dest="emit_path",
+                help="Instead of rendering baked pixels, write the tuned crop PATH to this JSON file and "
+                     "exit. Reuses ALL the tuned tracking (ROI, face-conf, per-seg Y-lock, smoothing). "
+                     "Feeds the Premiere Motion-keyframe reframe (Option C: editable follow-cam, no bake). "
+                     "Emits per-frame clamped crop top-left (x0,y0) + crop size, in SOURCE pixels.")
 ap.add_argument("--global-y", action="store_true", default=False,
                 help="ONE Y-lock for the WHOLE clip (clip-wide eyeline median) even when segments/cut "
                      "frames are present. REQUIRED for same-angle assembled cuts (single locked camera): "
@@ -283,6 +288,32 @@ else:
     y_lock_per_seg = None
     print(f"{W}x{H} {fps:.1f}fps {n}f | hits {hits} ({100*hits//max(1,n)}%) | x {xss.min()/W:.2f}-{xss.max()/W:.2f} | "
           f"y {'LOCKED@%.2f' % (y_lock/H) if a.lock_y else 'tracked~%.2f' % (yss.mean()/H)} | center={a.xcenter}", flush=True)
+# ── EMIT PATH (Option C): dump the tuned crop path, skip the bake ──
+# Reproduces the EXACT per-frame clamped crop geometry the render loop below uses, so the Premiere
+# Motion-keyframe reframe matches a baked render pixel-for-pixel. Only Position varies when zoom is
+# fixed; y is constant under lock_y. The injector converts (x0,y0,cropW,cropH) -> Motion Position (norm)
+# + a constant Scale, and decimates to keyframes on its side.
+if a.emit_path:
+    import json as _json
+    frames = []
+    for i in range(n):
+        x0 = max(0, min(W - cropW, int(round(xss[i] - cropW / 2))))
+        if y_lock_per_seg is not None:
+            yc = y_lock_per_seg[seg_ids[i]]
+        elif a.lock_y:
+            yc = y_lock
+        else:
+            yc = yss[i]
+        y0 = max(0, min(H - cropH, int(round(yc - a.eye_y * cropH))))
+        frames.append([i, int(x0), int(y0)])
+    with open(a.emit_path, "w") as _fh:
+        _json.dump({"src_w": W, "src_h": H, "fps": float(fps), "n_frames": n,
+                    "crop_w": int(cropW), "crop_h": int(cropH), "zoom": a.zoom,
+                    "eye_y": a.eye_y, "lock_y": bool(a.lock_y),
+                    "cut_frames": _cut_frames, "frames": frames}, _fh)
+    print(f"emit-path -> {a.emit_path}  ({n} frames, crop {cropW}x{cropH}, zoom {a.zoom})", flush=True)
+    sys.exit(0)
+
 # Frames at/just after a cut where NO face was detected = the dissolve/transition frame. Holding the
 # previous good crop for that 1 frame is invisible at a hard cut; showing its interpolated/fallback
 # crop is the background flash. Build the boundary set once.
