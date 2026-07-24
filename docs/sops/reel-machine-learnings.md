@@ -107,3 +107,49 @@ First run on a NON-Kan client (a mono Loom group sales-coaching call). New rules
 
 ### Transcription
 - Groq whisper-large-v3, ~17s/hr. Do NOT sort words by timestamp (scrambles neighbours). For caption TIMING, transcribe the SHORT final reel audio, not slices of the long transcript.
+
+## 8. Rep 3 FINAL — the locked pipeline (Joseph, 2026-07-22)
+
+Three reps on TradesFormation (a Zoom sales-coaching call) locked the system. **Division of labour:** the AI automates ~90% of the OUTPUT — caption TIMING + pause/filler TRIMMING + reel assembly in Premiere. Reel SELECTION keeps a human taste element (the operator confirms/reworks the scripts before anything is built). The two things that MUST be nailed are caption timing and pause trimming — that is where the manual hours go.
+
+### 8a. Caption timing — THE #1 priority, nail it 100%
+- **One mistimed caption cascades:** every later cue then needs re-timing by hand. Getting this right is the single biggest time-saver; getting it wrong is the single biggest time-sink.
+- **Time from the SHORT reel's OWN transcription — NEVER the long session transcript.** Long-chunk Groq/Whisper word-timestamps drift ~+0.8s deep inside each 600s chunk, so mapping them onto a reel makes every caption ~0.8s late (the recurring failure across reps). Validated on Joseph's hand-tuned R04: raw onsets from transcribing the *assembled reel* land median ON the word (−0.03s), within ~2 frames.
+- **Do NOT "energy-snap" or align to the on-screen waveform.** Tested — it overshoots ~0.5s early and makes timing worse. Raw reel-transcription onset is the answer.
+- **Footage type changes the method — ASK "what kind of footage is this?" at intake, every time:**
+  - **Zoom / online / sales-call** (most clients): the waveform you SEE in Premiere LAGS the real audio — they do not match. Time strictly from the transcription (caption flips exactly when the word is spoken), never off the visible waveform.
+  - **In-person / workshop:** waveform matches the audio; either reference works.
+- Rule: a caption changes exactly WHEN the word is spoken, NEVER before it is said. Target ≥90% correct so the operator's manual pass is ~15–20 min max.
+- If the transcription drops a quiet/remote participant's word, hand-place JUST that one cue from cut geometry — do NOT fall back to long-transcript mapping for the rest.
+- Whisper drops the first 1–4 words after a hard cut (no silence lead-in). Fix: align the clean cue text to the whole-reel transcription onsets (difflib) and evenly distribute any unmapped opening run between the cut start and the first mapped word.
+
+### 8b. Pause / filler trimming — the "SCRIPT DEFINES THE CUT" model
+The approved caption script IS the edit-decision list. Keep exactly the approved words; delete everything between them:
+1. **Pure silence ≥0.4s** → razor + ripple (butt-join), keeping ~0.08s padding around each word so nothing clips.
+2. **Non-script filler / stutter / tic / false-start** (um, uh, "right,", doubled words, "though she never even,") → remove, any length.
+3. **Anything not in the approved script** (redundant tangents) → remove.
+4. **Leave <0.4s micro-pauses** — natural rhythm is the operator's taste call.
+5. **WORD-SAFETY IS ABSOLUTE:** never clip a word that is in the approved script. If a gap/filler can't be removed without risking an approved word, LEAVE it and flag it with a **timeline marker** — losing words is worse than leaving a pause.
+- Cut on VAD/silence boundaries, NOT ASR word-ends (ASR word-ends overlap the next word → they bleed the stumble back in → "cuts between his words").
+- This model reproduced 100% of Joseph's hand-cuts on R03 and R04 (verified by diffing his cut sequences against the source).
+
+### 8c. Selection (human-in-the-loop) — three takeaway gates
+- Transcribe AND watch the footage; a moment must work on BOTH the words and the video (drop moments where the speaker leaves frame / there's no usable shot).
+- Deliver ~5 candidate scripts (hook / body / closer+takeaway) as TEXT. Operator approves / reworks / culls BEFORE any building.
+- **Takeaway gates — ALL required:** (1) a takeaway EXISTS; (2) it's EXPLICITLY spoken (not demonstrated/inferred — R06 cull); (3) it has enough MEAT that spending the viewer's ~60s is a FAIR TRADE (R08 cull: a thin one-line tip padded with role-play). Thin takeaways get culled — it respects the audience and the brand.
+- **Hook must NOT answer the premise** — open the loop; put the principle at the payoff, echo it in the button (R04 reorder).
+- Camera must hold on the speaker for the whole cut (active-speaker Zoom/Loom recordings swap between people + screenshares).
+
+### 8d. Assembly / output
+- **Everything stays editable** — trimmable cuts + live reframe (Motion) + an editable caption track. The ONLY renders are the styled caption alpha .mov and the final MP4 export to the project's Exports folder. Never hand over a flattened clip.
+- Reframe: static for a fixed webcam (height-fill scale, Position normalized to centre the subject; a second speaker on a different camera needs their own centre). Multi-cam: operator sets up the angles first + drives angle-changes while the AI learns, automate later.
+- Audio gain via ExtendScript Volume Level = 10^(dB/20); NEVER the bridge volume tools (they mute). Calibrate to the source.
+- Per-client BRAND INTERVIEW before the first batch (caption style, hero colour, font, logo, title-text style); save a brand card and reuse.
+
+### 8e. Caption-track workflow + the hard bridge limit — WRITE MANUAL STEPS FOR TOTAL BEGINNERS
+The operator may be anyone on the team who has never done this. Any manual step you ask for MUST be spelled out click-by-click, no insider shorthand.
+- The premiere-pro bridge can ADD a caption track but CANNOT see, read, or delete one. Consequences:
+  - Lay the plain editable caption track **ONCE** (nail the timing first pass). The operator edits timing/text in place (~15–20 min).
+  - The operator exports the SRT sidecar — the ONLY way the AI can read the edits — then the AI re-bakes the styled alpha. Beginner steps: **File → Export → Media (⌘M) → Captions tab → "Create Sidecar File" → Format: SubRip (.srt) → Export.**
+  - If a caption track ever needs REPLACING, the AI must TELL the operator BEFORE and give exact clicks: **on the timeline, right-click the caption track's header (far left) → "Delete Track"** (or click the track's caption clips and press Delete). Never assume they know this.
+- **Import each SRT under a UNIQUE filename.** Re-importing the same file path makes Premiere serve its STALE cached caption data → duplicate tracks with wrong timing (burned an hour across R04/R08). New content = new filename.
